@@ -42,7 +42,10 @@ private slots:
     void nova_tela(const int& opcao);
     void novo_arquivo();
     void escolher_local_arquivo();
+    vector<pair<int, int>> calcular_mismatchs_gaps();
     vector<pair<string, string>> ver_linhas_diferentes();
+    vector<string> ver_porcentagem_linhas();
+    double ver_porcentagem_arquivos();
 };
 
 #endif // WINDOW_H

@@ -163,6 +163,7 @@ void window::processar() {
 void window::nova_tela(const int& opcao) {
     QFont font("Times", 15, QFont::Bold);
     QWidget* new_window = new QWidget(nullptr);
+    new_window->resize(1000, 800);
     QHBoxLayout *tela = new QHBoxLayout();
 
     QListWidget *lista = new QListWidget();
@@ -172,6 +173,16 @@ void window::nova_tela(const int& opcao) {
 
     if(opcao == 1) {
         new_window->setWindowTitle("Quantidade de Mismatchs e Gaps");
+        vector<pair<int, int>> mismatch_gap = calcular_mismatchs_gaps();
+
+        QListWidget *lista2 = new QListWidget();
+        lista2->setFont(font);
+        tela->addWidget(lista2);
+
+        for(size_t i = 0; i < mismatch_gap.size(); ++i) {
+            lista->addItem(QString::fromStdString(to_string(i+1)) + ": " + QString::fromStdString(to_string(mismatch_gap[i].first)) + " Mismatchs");
+            lista2->addItem(QString::fromStdString(to_string(i+1)) + ": " + QString::fromStdString(to_string(mismatch_gap[i].second)) + " Gaps");
+        }
     }
     else if(opcao == 2) {
         new_window->setWindowTitle("Mostrar linhas diferentes");
@@ -181,20 +192,28 @@ void window::nova_tela(const int& opcao) {
         lista2->setFont(font);
         tela->addWidget(lista2);
 
-        for(const auto& p : diferencas) {
-            lista->addItem(QString::fromStdString(p.first));
-            lista2->addItem(QString::fromStdString(p.second));
+        for(const auto& d : diferencas) {
+            lista->addItem(QString::fromStdString(d.first));
+            lista2->addItem(QString::fromStdString(d.second));
         }
     }
     else if(opcao == 3) {
         new_window->setWindowTitle("Porcentagem de igualdade por linha");
+        vector<string> porcentagem = ver_porcentagem_linhas();
+
+        for(const auto& p : porcentagem)
+            lista->addItem(QString::fromStdString(p));
     }
     else if(opcao == 4) {
         new_window->setWindowTitle("Porcentagem de igualdade entre os arquivos");
+        double p = ver_porcentagem_arquivos();
+        QFont novo("Times", 50, QFont::Bold);
+        lista->setFont(novo);
+        lista->addItem(QString::fromStdString(to_string(p) + "%"));
+        new_window->setFixedSize(410, 120);
     }
 
     new_window->setLayout(tela);
-    new_window->resize(650, 330);
     new_window->show();
 }
 
@@ -271,6 +290,59 @@ void window::escolher_local_arquivo() {
     }
 }
 
+vector<pair<int, int>> window::calcular_mismatchs_gaps() {
+    file1.open(file_name1.toStdString());
+    file2.open(file_name2.toStdString());
+
+    vector<pair<int, int>> mismatch_gap;
+
+    string s1, s2;
+    bool read_f1 = true, read_f2 = true;
+
+    while(1) {
+        if(!getline(file1, s1))
+            read_f1 = false;
+        if(!getline(file2, s2))
+            read_f2 = false;
+
+        if(read_f1 && read_f2) {
+            int tamanho = max(s1.size(), s2.size());
+            int n = min(s1.size(), s2.size());
+            int mismatch = 0;
+
+            for(int x = 0; x < n; ++x) {
+                if(s1[x]!=s2[x])
+                    mismatch++;
+            }
+
+            int gap = tamanho - n;
+
+            mismatch_gap.push_back(make_pair(mismatch, gap));
+        }
+        else if(read_f1 && !read_f2) {
+            mismatch_gap.push_back(make_pair(0, s1.size()));
+            while(getline(file1, s1)) {
+                mismatch_gap.push_back(make_pair(0, s1.size()));
+            }
+            break;
+        }
+        else if(!read_f1 && read_f2) {
+            mismatch_gap.push_back(make_pair(0, s2.size()));
+            while(getline(file2, s2)) {
+                mismatch_gap.push_back(make_pair(0, s2.size()));
+            }
+            break;
+        }
+        else {
+            break;
+        }
+    }
+
+    file1.close();
+    file2.close();
+    return mismatch_gap;
+}
+
 vector<pair<string, string>> window::ver_linhas_diferentes() {
     file1.open(file_name1.toStdString());
     file2.open(file_name2.toStdString());
@@ -320,4 +392,111 @@ vector<pair<string, string>> window::ver_linhas_diferentes() {
     file1.close();
     file2.close();
     return diferencas;
+}
+
+vector<string> window::ver_porcentagem_linhas() {
+    file1.open(file_name1.toStdString());
+    file2.open(file_name2.toStdString());
+
+    vector<string> porcentagem;
+
+    string s1, s2;
+    bool read_f1 = true, read_f2 = true;
+
+    int i = 1;
+
+    while(1) {
+        if(!getline(file1, s1))
+            read_f1 = false;
+        if(!getline(file2, s2))
+            read_f2 = false;
+
+        if(read_f1 && read_f2) {
+            int tamanho = max(s1.size(), s2.size());
+            int n = min(s1.size(), s2.size());
+            int qtd = 0;
+
+            for(int x = 0; x < n; ++x) {
+                if(s1[x]==s2[x])
+                    qtd++;
+            }
+
+            double igualdade = qtd/(double)tamanho;
+            porcentagem.push_back(to_string(i) + ": " + to_string(igualdade*100) + "%");
+            i++;
+        }
+        else if(read_f1 && !read_f2) {
+            porcentagem.push_back(to_string(i) + ": 0,00%");
+            i++;
+            while(getline(file1, s1)) {
+                porcentagem.push_back(to_string(i) + ": 0,00%");
+                i++;
+            }
+            break;
+        }
+        else if(!read_f1 && read_f2) {
+            porcentagem.push_back(to_string(i) + ": 0,00%");
+            i++;
+            while(getline(file2, s2)) {
+                porcentagem.push_back(to_string(i) + ": 0,00%");
+                i++;
+            }
+            break;
+        }
+        else {
+            break;
+        }
+    }
+
+    file1.close();
+    file2.close();
+    return porcentagem;
+}
+
+double window::ver_porcentagem_arquivos() {
+    file1.open(file_name1.toStdString());
+    file2.open(file_name2.toStdString());
+
+    int total = 0, igualdade = 0;
+
+    string s1, s2;
+    bool read_f1 = true, read_f2 = true;
+
+    while(1) {
+        if(!getline(file1, s1))
+            read_f1 = false;
+        if(!getline(file2, s2))
+            read_f2 = false;
+
+        if(read_f1 && read_f2) {
+            total += max(s1.size(), s2.size());
+            int n = min(s1.size(), s2.size());
+
+            for(int x = 0; x < n; ++x) {
+                if(s1[x]==s2[x])
+                    igualdade++;
+            }
+        }
+        else if(read_f1 && !read_f2) {
+            total += s1.size();
+            while(getline(file1, s1)) {
+                total += s1.size();
+            }
+            break;
+        }
+        else if(!read_f1 && read_f2) {
+            total += s2.size();
+            while(getline(file2, s2)) {
+                total += s2.size();
+            }
+            break;
+        }
+        else {
+            break;
+        }
+    }
+
+    file1.close();
+    file2.close();
+    return (igualdade/(double)total)*100;
 }
