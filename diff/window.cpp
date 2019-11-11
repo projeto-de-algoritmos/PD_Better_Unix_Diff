@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QListWidget>
+#include <QFormLayout>
 
 window::window(QWidget *parent) : QWidget(parent) {
     int maximum_label_height = 30;
@@ -153,18 +154,37 @@ void window::processar() {
     if(equal_files_option) {
         this->nova_tela(4);
     }
+
+    if(align_text_option) {
+        this->novo_arquivo();
+    }
 }
 
 void window::nova_tela(const int& opcao) {
     QFont font("Times", 15, QFont::Bold);
     QWidget* new_window = new QWidget(nullptr);
-    QVBoxLayout *tela = new QVBoxLayout();
+    QHBoxLayout *tela = new QHBoxLayout();
+
+    QListWidget *lista = new QListWidget();
+    lista->setFont(font);
+
+    tela->addWidget(lista);
 
     if(opcao == 1) {
         new_window->setWindowTitle("Quantidade de Mismatchs e Gaps");
     }
     else if(opcao == 2) {
         new_window->setWindowTitle("Mostrar linhas diferentes");
+        vector<pair<string, string>> diferencas = ver_linhas_diferentes();
+
+        QListWidget *lista2 = new QListWidget();
+        lista2->setFont(font);
+        tela->addWidget(lista2);
+
+        for(const auto& p : diferencas) {
+            lista->addItem(QString::fromStdString(p.first));
+            lista2->addItem(QString::fromStdString(p.second));
+        }
     }
     else if(opcao == 3) {
         new_window->setWindowTitle("Porcentagem de igualdade por linha");
@@ -173,13 +193,131 @@ void window::nova_tela(const int& opcao) {
         new_window->setWindowTitle("Porcentagem de igualdade entre os arquivos");
     }
 
-    QListWidget *lista = new QListWidget();
-    lista->setFont(font);
-
-    lista->addItem(QString::number(opcao));
-
-    tela->addWidget(lista);
     new_window->setLayout(tela);
-    new_window->setFixedSize(650, 330);
+    new_window->resize(650, 330);
     new_window->show();
+}
+
+void window::novo_arquivo() {
+    QWidget* new_window = new QWidget(nullptr);
+    new_window->setFixedSize(600, 220);
+    new_window->setWindowTitle("Adicionar Tarefa");
+
+    QFont buttonFont("Times", 20);
+    const int button_size = 200;
+    QFont labelFont("Times", 20, QFont::Bold);
+    QFont campoFont("Times", 20);
+
+    QFormLayout *formLayout = new QFormLayout;
+    formLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+    QLabel *main_label = new QLabel("Insira as penalidades");
+    main_label->setFont(labelFont);
+    main_label->setAlignment(Qt::AlignCenter);
+    QLabel *label_gap = new QLabel("Penalidade do Gap:");
+    label_gap->setFont(labelFont);
+    QLabel *label_mismatch = new QLabel("Penalidade do Mismatch:");
+    label_mismatch->setFont(labelFont);
+
+    line_peso_gap = new QLineEdit();
+    line_peso_gap->setFont(campoFont);
+    line_peso_gap->setValidator(new QIntValidator());
+
+    line_peso_mismatch = new QLineEdit();
+    line_peso_mismatch->setFont(campoFont);
+    line_peso_mismatch->setValidator(new QIntValidator());
+
+    QPushButton *salvar_arquivo = new QPushButton("Salvar");
+    salvar_arquivo->setMinimumWidth(button_size);
+    salvar_arquivo->setFont(buttonFont);
+    connect(salvar_arquivo, &QPushButton::clicked, this, &window::escolher_local_arquivo);
+
+    formLayout->addWidget(main_label);
+    formLayout->addRow(label_gap, line_peso_gap);
+    formLayout->addRow(label_mismatch, line_peso_mismatch);
+
+    alert = new QLabel(" ");
+    alert->setAlignment(Qt::AlignCenter);
+    alert->setMaximumHeight(20);
+
+    formLayout->addWidget(salvar_arquivo);
+    formLayout->addWidget(alert);
+
+    new_window->setLayout(formLayout);
+    new_window->show();
+}
+
+void window::escolher_local_arquivo() {
+    const int gap = line_peso_gap->text().toInt();
+    if(gap < 0) {
+        alert->setText("Peso do Gap deve ser 0 ou maior");
+        return;
+    }
+
+    const int mismatch = line_peso_mismatch->text().toInt();
+    if(mismatch < 0) {
+        alert->setText("Peso do Mismatch deve ser 0 ou maior");
+        return;
+    }
+
+    QString temp = QFileDialog::getSaveFileName(
+                this,
+                "Salvar Arquivo",
+                QDir::currentPath(),
+                "Todos os arquivos (*.*)");
+
+    if(temp.size()) {
+        file_name3 = temp;
+    }
+}
+
+vector<pair<string, string>> window::ver_linhas_diferentes() {
+    file1.open(file_name1.toStdString());
+    file2.open(file_name2.toStdString());
+
+    vector<pair<string, string>> diferencas;
+
+    string s1, s2;
+    bool read_f1 = true, read_f2 = true;
+
+    int i = 1;
+
+    while(1) {
+        if(!getline(file1, s1))
+            read_f1 = false;
+        if(!getline(file2, s2))
+            read_f2 = false;
+
+        if(read_f1 && read_f2) {
+            if(s1!=s2) {
+                diferencas.push_back(make_pair(to_string(i) + ": " + s1, to_string(i) + ": " + s2));
+            }
+            i++;
+        }
+        else if(read_f1 && !read_f2) {
+            diferencas.push_back(make_pair(to_string(i) + ": " + s1, ""));
+            i++;
+            while(getline(file1, s1)) {
+                diferencas.push_back(make_pair(to_string(i) + ": " + s1, ""));
+                i++;
+            }
+            break;
+        }
+        else if(!read_f1 && read_f2) {
+            diferencas.push_back(make_pair("", to_string(i) + ": " + s2));
+            i++;
+            while(getline(file2, s2)) {
+                diferencas.push_back(make_pair("", to_string(i) + ": " + s2));
+                i++;
+            }
+            break;
+        }
+        else {
+            break;
+        }
+    }
+
+    file1.close();
+    file2.close();
+    return diferencas;
 }
