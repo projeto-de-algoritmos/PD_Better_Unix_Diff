@@ -288,10 +288,48 @@ void window::escolher_local_arquivo() {
     if(temp.size()) {
         file_name3 = temp;
         janela->close();
+        file1.open(file_name1.toStdString());
+        file2.open(file_name2.toStdString());
         file3.open(file_name3.toStdString());
 
-        // Funcao de Sequence Alignment
+        string s1, s2;
+        bool read_f1 = true, read_f2 = true;
 
+        while(1) {
+            if(!getline(file1, s1))
+                read_f1 = false;
+            if(!getline(file2, s2))
+                read_f2 = false;
+
+            if(read_f1 && read_f2) {
+                sequence(s1.size(), s2.size(), s1, s2, mismatch, gap);
+                reverse(result.begin(), result.end());
+
+                file3 << result << endl;
+
+                result = "";
+            }
+            else if(read_f1 && !read_f2) {
+                file3 << s1 << endl;
+                while(getline(file1, s1)) {
+                    file3 << s1 << endl;
+                }
+                break;
+            }
+            else if(!read_f1 && read_f2) {
+                file3 << s2 << endl;
+                while(getline(file2, s2)) {
+                    file3 << s2 << endl;
+                }
+                break;
+            }
+            else {
+                break;
+            }
+        }
+
+        file1.close();
+        file2.close();
         file3.close();
     }
 }

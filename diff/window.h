@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <utility>
+#include "sequence.h"
 
 using namespace std;
 

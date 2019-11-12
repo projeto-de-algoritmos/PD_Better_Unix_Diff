@@ -8,7 +8,9 @@ CONFIG += c++17
 
 SOURCES += \
         main.cpp \
-        window.cpp
+        window.cpp \
+    sequence.cpp
 
 HEADERS += \
-        window.h
+        window.h \
+    sequence.h
