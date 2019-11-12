@@ -30,10 +30,11 @@ private:
     QString file_name3;
     ifstream file1;
     ifstream file2;
-    ifstream file3;
+    ofstream file3;
     QLineEdit *line_peso_gap;
     QLineEdit *line_peso_mismatch;
     QLabel *alert;
+    QWidget* janela;
 
 private slots:
     void selecionar_arquivo_1();

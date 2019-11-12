@@ -218,9 +218,9 @@ void window::nova_tela(const int& opcao) {
 }
 
 void window::novo_arquivo() {
-    QWidget* new_window = new QWidget(nullptr);
-    new_window->setFixedSize(600, 220);
-    new_window->setWindowTitle("Adicionar Tarefa");
+    janela = new QWidget(nullptr);
+    janela->setFixedSize(600, 220);
+    janela->setWindowTitle("Adicionar Tarefa");
 
     QFont buttonFont("Times", 20);
     const int button_size = 200;
@@ -262,8 +262,8 @@ void window::novo_arquivo() {
     formLayout->addWidget(salvar_arquivo);
     formLayout->addWidget(alert);
 
-    new_window->setLayout(formLayout);
-    new_window->show();
+    janela->setLayout(formLayout);
+    janela->show();
 }
 
 void window::escolher_local_arquivo() {
@@ -287,6 +287,12 @@ void window::escolher_local_arquivo() {
 
     if(temp.size()) {
         file_name3 = temp;
+        janela->close();
+        file3.open(file_name3.toStdString());
+
+        // Funcao de Sequence Alignment
+
+        file3.close();
     }
 }
 
